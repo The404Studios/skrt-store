@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SKRT — Digital Products Store</title>
+<meta name="description" content="Premium digital products for creators, marketers & entrepreneurs. Instant download.">
 <style>
 :root {
   --bg: #0a0a0a;
@@ -15,14 +16,14 @@
   --green: #22c55e;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; line-height:1.6; }
+body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; line-height:1.6; min-height:100vh; }
 header { background:var(--card); border-bottom:1px solid var(--border); padding:1.2rem 2rem; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
 .logo { font-size:1.8rem; font-weight:900; letter-spacing:-1px; color:#fff; }
 .logo span { color:var(--accent); }
 .cart-btn { background:var(--accent); color:#fff; border:none; padding:0.6rem 1.5rem; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.95rem; }
 .cart-btn:hover { opacity:0.9; }
 .cart-count { background:#fff; color:var(--accent); padding:0.1rem 0.4rem; border-radius:10px; font-size:0.75rem; margin-left:4px; }
-.hero { text-align:center; padding:4rem 2rem; background:linear-gradient(135deg,var(--accent),#a855f7); color:#fff; }
+.hero { text-align:center; padding:4rem 2rem; background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; }
 .hero h1 { font-size:3rem; font-weight:900; letter-spacing:-2px; }
 .hero p { font-size:1.2rem; margin-top:0.5rem; opacity:0.9; }
 .products { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1.5rem; padding:2rem; max-width:1200px; margin:0 auto; }
@@ -41,9 +42,11 @@ footer { text-align:center; padding:2rem; color:var(--muted); font-size:0.85rem;
 .cart-item button { background:none; color:red; border:none; cursor:pointer; font-size:1.2rem; }
 .cart-total { margin-top:1rem; font-size:1.3rem; font-weight:700; }
 .checkout-btn { display:block; width:100%; margin-top:1rem; background:var(--green); color:#000; border:none; padding:0.8rem; border-radius:8px; cursor:pointer; font-weight:700; font-size:1rem; }
+.checkout-btn:disabled { opacity:0.5; cursor:not-allowed; }
 .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:199; display:none; }
 .overlay.show { display:block; }
-.badge { display:inline-block; background:var(--green); color:#000; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:0.5rem; }
+.spinner { display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin .6s linear infinite; margin-right:6px; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -54,7 +57,7 @@ footer { text-align:center; padding:2rem; color:var(--muted); font-size:0.85rem;
 
 <div class="hero">
   <h1>Instant Digital Downloads</h1>
-  <p>Premium digital products — delivered instantly after purchase. No waiting.</p>
+  <p>Premium digital products — delivered instantly after purchase.</p>
 </div>
 
 <div class="products" id="products"></div>
@@ -67,31 +70,32 @@ footer { text-align:center; padding:2rem; color:var(--muted); font-size:0.85rem;
   <button class="checkout-btn" id="checkoutBtn" style="display:none" onclick="checkout()">Checkout with Stripe</button>
 </div>
 
-<footer>© 2026 SKRT Online — Digital Products Store</footer>
+<footer>© 2026 SKRT Online — Digital Products Store | Powered by Stripe</footer>
 
-<script src="https://js.stripe.com/v3/"></script>
 <script>
+const API_BASE = window.location.origin;
+
 const products = [
-  { id:'prod_1', name:'Social Media Growth Kit', desc:'30+ templates, caption guides & hashtag strategies to blow up your accounts.', price:29, icon:'📱' },
-  { id:'prod_2', name:'E-Commerce Starter Pack', desc:'Full Shopify theme + product research guide + supplier list for dropshipping.', price:49, icon:'🛍️' },
-  { id:'prod_3', name:'AI Prompt Master Collection', desc:'500+ tested ChatGPT prompts for business, content, marketing & coding.', price:19, icon:'🤖' },
-  { id:'prod_4', name:'Faceless YouTube Empire', desc:'Script templates, thumbnail PSDs & niche ideas to run automated channels.', price:39, icon:'🎬' },
-  { id:'prod_5', name:'Notion Life OS Template', desc:'All-in-one dashboard: tasks, habits, finance tracker, goal setting system.', price:24, icon:'📋' },
-  { id:'prod_6', name:'Resume & Portfolio Bundle', desc:'5 premium resume templates + cover letters + portfolio site template.', price:15, icon:'💼' },
-  { id:'prod_7', name:'TikTok Shop Blueprint', desc:'Step-by-step guide to setting up & scaling a profitable TikTok Shop.', price:34, icon:'🎵' },
-  { id:'prod_8', name:'Digital Marketing Vault', desc:'200+ ad copies, email sequences, landing page templates & funnel maps.', price:27, icon:'📈' }
+  { id:'prod_1', name:'Social Media Growth Kit', desc:'30+ templates, caption guides & hashtag strategies.', price:29, icon:'📱' },
+  { id:'prod_2', name:'E-Commerce Starter Pack', desc:'Shopify theme + product research guide + supplier list.', price:49, icon:'🛍️' },
+  { id:'prod_3', name:'AI Prompt Master Collection', desc:'500+ tested ChatGPT prompts for business & marketing.', price:19, icon:'🤖' },
+  { id:'prod_4', name:'Faceless YouTube Empire', desc:'Script templates, thumbnail PSDs & niche ideas.', price:39, icon:'🎬' },
+  { id:'prod_5', name:'Notion Life OS Template', desc:'Tasks, habits, finance tracker & goal setting system.', price:24, icon:'📋' },
+  { id:'prod_6', name:'Resume & Portfolio Bundle', desc:'5 premium resume templates + cover letters + portfolio.', price:15, icon:'💼' },
+  { id:'prod_7', name:'TikTok Shop Blueprint', desc:'Step-by-step guide to scaling a profitable TikTok Shop.', price:34, icon:'🎵' },
+  { id:'prod_8', name:'Digital Marketing Vault', desc:'200+ ad copies, email sequences & landing page templates.', price:27, icon:'📈' }
 ];
 
 let cart = [];
 
 function renderProducts() {
   document.getElementById('products').innerHTML = products.map(p => `
-    <div class="product" onclick="addToCart('${p.id}')">
+    <div class="product">
       <div class="icon">${p.icon}</div>
       <h3>${p.name}</h3>
       <div class="desc">${p.desc}</div>
       <div class="price">$${p.price}</div>
-      <button class="buy-btn">Add to Cart</button>
+      <button class="buy-btn" onclick="addToCart('${p.id}')">Add to Cart</button>
     </div>
   `).join('');
 }
@@ -101,9 +105,7 @@ function addToCart(id) {
   if (item) { cart.push(item); updateCart(); }
 }
 
-function removeFromCart(index) {
-  cart.splice(index, 1); updateCart();
-}
+function removeFromCart(index) { cart.splice(index, 1); updateCart(); }
 
 function updateCart() {
   document.getElementById('cartCount').textContent = cart.length;
@@ -113,13 +115,13 @@ function updateCart() {
     document.getElementById('cartTotal').style.display = 'none';
     document.getElementById('checkoutBtn').style.display = 'none';
   } else {
-    panel.innerHTML = cart.map((item, i) => `
+    panel.innerHTML = cart.map((item,i) => `
       <div class="cart-item">
         <span>${item.icon} ${item.name} — $${item.price}</span>
         <button onclick="removeFromCart(${i})">✕</button>
       </div>
     `).join('');
-    const total = cart.reduce((s, i) => s + i.price, 0);
+    const total = cart.reduce((s,i) => s + i.price, 0);
     document.getElementById('cartTotal').style.display = 'block';
     document.getElementById('cartTotal').textContent = `Total: $${total}`;
     document.getElementById('checkoutBtn').style.display = 'block';
@@ -132,9 +134,29 @@ function toggleCart() {
 }
 
 async function checkout() {
-  const total = cart.reduce((s, i) => s + i.price, 0);
-  const items = cart.map(i => i.name).join(', ');
-  alert(`Checkout: ${items}\nTotal: $${total}\n\n(Stripe integration ready — add your Stripe publishable key to activate live payments)`);
+  const btn = document.getElementById('checkoutBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Redirecting to Stripe...';
+  
+  try {
+    const resp = await fetch(API_BASE + '/api/create-checkout-session', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ items: cart.map(i => i.id) })
+    });
+    const data = await resp.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert('Error: ' + (data.error || 'Could not start checkout'));
+      btn.disabled = false;
+      btn.textContent = 'Checkout with Stripe';
+    }
+  } catch(e) {
+    alert('Payment server not available. Try again shortly.');
+    btn.disabled = false;
+    btn.textContent = 'Checkout with Stripe';
+  }
 }
 
 renderProducts();
