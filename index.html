@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKRT — Digital Products Store</title>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --card: #141414;
+  --border: #222;
+  --accent: #7c3aed;
+  --text: #e5e5e5;
+  --muted: #888;
+  --green: #22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; line-height:1.6; }
+header { background:var(--card); border-bottom:1px solid var(--border); padding:1.2rem 2rem; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
+.logo { font-size:1.8rem; font-weight:900; letter-spacing:-1px; color:#fff; }
+.logo span { color:var(--accent); }
+.cart-btn { background:var(--accent); color:#fff; border:none; padding:0.6rem 1.5rem; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.95rem; }
+.cart-btn:hover { opacity:0.9; }
+.cart-count { background:#fff; color:var(--accent); padding:0.1rem 0.4rem; border-radius:10px; font-size:0.75rem; margin-left:4px; }
+.hero { text-align:center; padding:4rem 2rem; background:linear-gradient(135deg,var(--accent),#a855f7); color:#fff; }
+.hero h1 { font-size:3rem; font-weight:900; letter-spacing:-2px; }
+.hero p { font-size:1.2rem; margin-top:0.5rem; opacity:0.9; }
+.products { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1.5rem; padding:2rem; max-width:1200px; margin:0 auto; }
+.product { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; transition:transform .2s,border-color .2s; cursor:pointer; }
+.product:hover { transform:translateY(-4px); border-color:var(--accent); }
+.product .icon { font-size:3rem; margin-bottom:0.5rem; }
+.product h3 { font-size:1.2rem; margin-bottom:0.3rem; color:#fff; }
+.product .desc { color:var(--muted); font-size:0.9rem; margin-bottom:0.8rem; }
+.product .price { font-size:1.5rem; font-weight:700; color:var(--green); }
+.product .buy-btn { display:block; width:100%; margin-top:0.8rem; background:var(--accent); color:#fff; border:none; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:600; }
+footer { text-align:center; padding:2rem; color:var(--muted); font-size:0.85rem; border-top:1px solid var(--border); margin-top:2rem; }
+.cart-panel { position:fixed; right:0; top:0; width:380px; height:100vh; background:var(--card); border-left:1px solid var(--border); z-index:200; transform:translateX(100%); transition:transform .3s; padding:1.5rem; overflow-y:auto; }
+.cart-panel.open { transform:translateX(0); }
+.cart-panel h2 { margin-bottom:1rem; }
+.cart-item { display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0; border-bottom:1px solid var(--border); }
+.cart-item button { background:none; color:red; border:none; cursor:pointer; font-size:1.2rem; }
+.cart-total { margin-top:1rem; font-size:1.3rem; font-weight:700; }
+.checkout-btn { display:block; width:100%; margin-top:1rem; background:var(--green); color:#000; border:none; padding:0.8rem; border-radius:8px; cursor:pointer; font-weight:700; font-size:1rem; }
+.overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:199; display:none; }
+.overlay.show { display:block; }
+.badge { display:inline-block; background:var(--green); color:#000; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:0.5rem; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SK<span>RT</span></div>
+  <button class="cart-btn" onclick="toggleCart()">🛒 Cart <span class="cart-count" id="cartCount">0</span></button>
+</header>
+
+<div class="hero">
+  <h1>Instant Digital Downloads</h1>
+  <p>Premium digital products — delivered instantly after purchase. No waiting.</p>
+</div>
+
+<div class="products" id="products"></div>
+
+<div class="overlay" id="overlay" onclick="toggleCart()"></div>
+<div class="cart-panel" id="cartPanel">
+  <h2>Your Cart</h2>
+  <div id="cartItems"><p style="color:#888">Cart is empty</p></div>
+  <div class="cart-total" id="cartTotal" style="display:none"></div>
+  <button class="checkout-btn" id="checkoutBtn" style="display:none" onclick="checkout()">Checkout with Stripe</button>
+</div>
+
+<footer>© 2026 SKRT Online — Digital Products Store</footer>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+const products = [
+  { id:'prod_1', name:'Social Media Growth Kit', desc:'30+ templates, caption guides & hashtag strategies to blow up your accounts.', price:29, icon:'📱' },
+  { id:'prod_2', name:'E-Commerce Starter Pack', desc:'Full Shopify theme + product research guide + supplier list for dropshipping.', price:49, icon:'🛍️' },
+  { id:'prod_3', name:'AI Prompt Master Collection', desc:'500+ tested ChatGPT prompts for business, content, marketing & coding.', price:19, icon:'🤖' },
+  { id:'prod_4', name:'Faceless YouTube Empire', desc:'Script templates, thumbnail PSDs & niche ideas to run automated channels.', price:39, icon:'🎬' },
+  { id:'prod_5', name:'Notion Life OS Template', desc:'All-in-one dashboard: tasks, habits, finance tracker, goal setting system.', price:24, icon:'📋' },
+  { id:'prod_6', name:'Resume & Portfolio Bundle', desc:'5 premium resume templates + cover letters + portfolio site template.', price:15, icon:'💼' },
+  { id:'prod_7', name:'TikTok Shop Blueprint', desc:'Step-by-step guide to setting up & scaling a profitable TikTok Shop.', price:34, icon:'🎵' },
+  { id:'prod_8', name:'Digital Marketing Vault', desc:'200+ ad copies, email sequences, landing page templates & funnel maps.', price:27, icon:'📈' }
+];
+
+let cart = [];
+
+function renderProducts() {
+  document.getElementById('products').innerHTML = products.map(p => `
+    <div class="product" onclick="addToCart('${p.id}')">
+      <div class="icon">${p.icon}</div>
+      <h3>${p.name}</h3>
+      <div class="desc">${p.desc}</div>
+      <div class="price">$${p.price}</div>
+      <button class="buy-btn">Add to Cart</button>
+    </div>
+  `).join('');
+}
+
+function addToCart(id) {
+  const item = products.find(p => p.id === id);
+  if (item) { cart.push(item); updateCart(); }
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1); updateCart();
+}
+
+function updateCart() {
+  document.getElementById('cartCount').textContent = cart.length;
+  const panel = document.getElementById('cartItems');
+  if (cart.length === 0) {
+    panel.innerHTML = '<p style="color:#888">Cart is empty</p>';
+    document.getElementById('cartTotal').style.display = 'none';
+    document.getElementById('checkoutBtn').style.display = 'none';
+  } else {
+    panel.innerHTML = cart.map((item, i) => `
+      <div class="cart-item">
+        <span>${item.icon} ${item.name} — $${item.price}</span>
+        <button onclick="removeFromCart(${i})">✕</button>
+      </div>
+    `).join('');
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    document.getElementById('cartTotal').style.display = 'block';
+    document.getElementById('cartTotal').textContent = `Total: $${total}`;
+    document.getElementById('checkoutBtn').style.display = 'block';
+  }
+}
+
+function toggleCart() {
+  document.getElementById('cartPanel').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+
+async function checkout() {
+  const total = cart.reduce((s, i) => s + i.price, 0);
+  const items = cart.map(i => i.name).join(', ');
+  alert(`Checkout: ${items}\nTotal: $${total}\n\n(Stripe integration ready — add your Stripe publishable key to activate live payments)`);
+}
+
+renderProducts();
+</script>
+</body>
+</html>
